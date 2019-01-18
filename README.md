@@ -1,6 +1,8 @@
 # ZPLUtility
 A .net library helping to generate ZPL string.
-Please refer to the Programming Guide for raw ZPL code definitaion, https://www.zebra.com/content/dam/zebra/manuals/en-us/software/zpl-zbi2-pm-en.pdf
+Please refer to the Programming Guide for raw ZPL code definitaion, <s>https://www.zebra.com/content/dam/zebra/manuals/en-us/software/zpl-zbi2-pm-en.pdf</s>
+
+[https://github.com/robmachado/webetiq/blob/master/local/Doc/zpl-zbi2-pm-en.pdf](https://github.com/robmachado/webetiq/blob/master/local/Doc/zpl-zbi2-pm-en.pdf)
 
 Some basic ZPL elements are included, if you have any suggestions please feel free to let me know.
 
@@ -16,6 +18,15 @@ Console.WriteLine(result);
 //Output
 //^FO100,100
 //^GB100,100,1,B,0^FS
+```
+### Barcode
+```C#
+var result = new ZPLBarCode128("123ABC", 100, 300).ToZPLString();
+Console.WriteLine(result);
+//Output
+//^FO100,300
+//^BCN,100,Y,N
+//^FD123ABC^FS
 ```
 ### Whole label
 ```C#
@@ -35,6 +46,26 @@ labelElements.Add(new ZPLRaw("^FO200, 200^GB300, 200, 10 ^FS"));
 
 var renderEngine = new ZPLEngine(labelElements);
 var output = renderEngine.ToZPLString(new ZPLRenderOptions() { AddEmptyLineBeforeElementStart = true });
+
+Console.WriteLine(output);
+```
+### Simple layout
+```C#
+var elements = new List<ZPLElementBase>();
+
+var o = new ZPLOrigin(100, 100);
+for (int i = 0; i < 3; i++)
+{
+    for (int j = 0; j < 3; j++)
+    {
+        elements.Add(new ZPLGraphicBox(o.PositionX, o.PositionY, 50, 50));
+        o = o.Offset(0, 100);
+    }
+    o = o.Offset(100, -300);
+}
+
+var options = new ZPLRenderOptions();
+var output = new ZPLEngine(elements).ToZPLString(options);
 
 Console.WriteLine(output);
 ```
@@ -85,12 +116,28 @@ var output = renderEngine.ToZPLString(new ZPLRenderOptions() { AddEmptyLineBefor
 Console.WriteLine(output);
 ```
 ### Draw pictures, auto resize based on DPI (Please dither the colorful picture first)
+You have 2 options:
+1. Use ~DY and ^IM
 ```C#
-var labelElements = new List<ZPLElementBase>();
-labelElements.Add(new ZPLDownloadGraphics('R', "SAMPLE", "GRC", new System.Drawing.Bitmap("Sample.bmp")));
-labelElements.Add(new ZPLRecallGraphic(100, 100, 'R', "SAMPLE", "GRC"));
+var elements = new List<ZPLElementBase>();
+elements.Add(new ZPLGraphicBox(0, 0, 100, 100, 4));
+elements.Add(new ZPLDownloadObjects('R', "SAMPLE.PNG", new System.Drawing.Bitmap("sample.bmp")));
+elements.Add(new ZPLImageMove(100, 100, 'R', "SAMPLE", "PNG"));
 
-var renderEngine = new ZPLEngine(labelElements);
+var renderEngine = new ZPLEngine(elements);
+var output = renderEngine.ToZPLString(new ZPLRenderOptions() { AddEmptyLineBeforeElementStart = true, TargetPrintDPI = 300, SourcePrintDPI = 200 });
+
+Console.WriteLine(output);
+```
+
+2. Use ~DG and ^XG
+
+```C#
+var elements = new List<ZPLElementBase>();
+elements.Add(new ZPLDownloadGraphics('R', "SAMPLE", "GRC", new System.Drawing.Bitmap("Sample.bmp")));
+elements.Add(new ZPLRecallGraphic(100, 100, 'R', "SAMPLE", "GRC"));
+
+var renderEngine = new ZPLEngine(elements);
 var output = renderEngine.ToZPLString(new ZPLRenderOptions() { AddEmptyLineBeforeElementStart = true, TargetPrintDPI = 600, SourcePrintDPI = 200 });
 
 Console.WriteLine(output);
